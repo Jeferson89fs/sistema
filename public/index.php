@@ -2,6 +2,7 @@
 
 require  "../vendor/autoload.php";
 require "../app/config/Config.php";
+include_once("../app/config/Middleware.php");
 require "../app/functions/functions.php";
 
 use App\Controller\Pages\Home;
