@@ -268,4 +268,16 @@ class Router
             return new Response($e->getCode(), $e->getMessage());
         }
     }
+
+    /**
+     * Redirecionar a URL     
+     * @param string $route     
+     */
+    public function redirect($route){
+        $url = $this->url.'/'.$route;
+        //dd($url.$route);
+        header('location:'.$url);
+        exit;
+
+    }
 }

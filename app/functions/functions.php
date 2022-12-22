@@ -4,7 +4,7 @@ use App\Core\ConfigEnv;
 
 function dd($param = [], $die = false)
 {
-    echo "<pre>";
+    echo "<pre style='background-color:#fff; color:#222;' > ";
     print_r($param);
     echo "</pre>";
 

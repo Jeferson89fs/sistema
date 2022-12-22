@@ -11,10 +11,16 @@ use App\Core\Response;
 
 //Router::get('/' , 'Home@getHome');
 
-Router::get('/{x}' , 'Home@getHome');
+Router::get('/' , 'Home@getHome');
 
 Router::group('admin' , function(){
-    Router::get('/{a}/{y}' , 'Home@getHome2', ['middlewares' => ['Maintenance']]);
+    
+    Router::get('/login' ,  'Admin\Login@getLogin'); //, ['middlewares' => ['LoginAdmin']]
+    Router::post('/login' , 'Admin\Login@verificaLogin'); //, ['middlewares' => ['LoginAdmin']]
+
+
+    Router::get('/' ,       'Admin\Home@getIndex',['middlewares' => ['LoginAdmin']]); //, ['middlewares' => ['LoginAdmin']]
+
 });
 
 

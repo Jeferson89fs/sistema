@@ -7,21 +7,11 @@ use App\Utils\View;
 class Home
 {
 
-    public function getHome($x)
+    public function getHome()
     {
-        $teste = 'parametro = ' . $x;
-
         return View::render('pages/home', [
-            'teste' => $teste
-        ]);
+            
+        ],true,'pages');
     }
-
-    public function getHome2($x, $y)
-    {
-        $teste = 'parametro home 2 = ' . $x . ' = ' . $y;
-
-        return View::render('pages/home', [
-            'teste' => $teste
-        ]);
-    }
+    
 }
