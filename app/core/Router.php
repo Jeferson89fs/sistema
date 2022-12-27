@@ -4,11 +4,13 @@ namespace App\Core;
 
 use \Closure;
 use \Exception;
-
+use ReflectionFiber;
+use \ReflectionFunction;
+use App\Core\ConfigEnv;
+use App\Core\Middleware\Queue as MiddlewareQueue;
 
 class Router
 {
-
 
     /**
      * URL COMPLETA     
@@ -35,6 +37,12 @@ class Router
     private $request;
 
     /**
+     * Grupo     
+     * @var string
+     */
+    static public $group = '/';
+
+    /**
      * Início
      */
     public function __construct($url)
@@ -57,24 +65,24 @@ class Router
     }
 
 
-   static public function get(string $route, array|Closure $params )
+    static public function get(string $route, array|Closure|String $Controller, $args = [])
     {
-        self::addRoute('GET', $route, $params);
+        self::addRoute('GET', $route, $Controller, $args);
     }
 
-    static public function post(string $route, array $params = [])
+    static public function post(string $route, array|Closure|String $Controller, $args = [])
     {
-        self::addRoute('POST', $route, $params);
+        self::addRoute('POST', $route, $Controller, $args);
     }
 
-    static public function put(string $route, array $params = [])
+    static public function put(string $route, array|Closure|String $Controller, $args = [])
     {
-        self::addRoute('PUT', $route, $params);
+        self::addRoute('PUT', $route, $Controller, $args);
     }
 
-    static public function delete(string $route, array $params = [])
+    static public function delete(string $route, array|Closure|String $Controller, $args = [])
     {
-        self::addRoute('DELETE', $route, $params);
+        self::addRoute('DELETE', $route, $Controller, $args);
     }
 
     /**
@@ -84,24 +92,51 @@ class Router
      * @param array $params
      * @return void
      */
-    static public function addRoute(string $method, string $route, array|Closure $params)
+    static public function addRoute(string $method, string $route, array|Closure|String $Controller, array $args = [] )
     {
 
-        // dd($params, false);
-        //valida os parametros
-        foreach ($params as $k => $v) {
-            if ($v instanceof Closure) {
+        $params['variables'] = [];
+        $patnerVariable = '/{(.*?)}/';
 
-                $params['controller'] = $v;
-                unset($params[$k]);
-                continue;
-            }
+        if (preg_match_all($patnerVariable, $route, $matches)) {
+            $route = preg_replace($patnerVariable, '(.*?)', $route);
+            $params['variables'] = $matches[1];
         }
+
+
+        $ControllerX = array();
+        if (is_array($Controller)) {
+            //valida os parametros
+            foreach ($Controller as $k => $v) {
+                if ($v instanceof Closure) {
+                    $ControllerX['controller'] = $v;
+                    unset($Controller[$k]);
+                    continue;
+                }
+            }
+        } else if (is_string($Controller)) {
+            $controllerMethod  = explode('@', $Controller);
+            $patternRoute = '/^' . str_replace('/', '\/', $route) . '$/';
+
+            // monta um array para chamar o methodo correto
+            $ControllerX['controller'] = [
+                'method' => $method,
+                'classe' => $controllerMethod[0],
+                'metodo' => $controllerMethod[1],
+                'params' => $params,
+                //'middlewares' => $params['middlewares'] ?? []
+            ];
+        } else {
+
+            $ControllerX['controller'] = $Controller;
+        }
+
+        $ControllerX['middlewares'] = $args['middlewares'] ?? [];
 
         //padrao de validacao da url
         $paternRoute = '/^' . str_replace('/', '\/', $route) . '$/';
 
-        self::$routes[$paternRoute][$method] = $params;
+        self::$routes[self::$group][$paternRoute][$method] = $ControllerX;
     }
 
     /**
@@ -111,9 +146,33 @@ class Router
     private function getUri()
     {
         //usado para tirar a / do $_server[URI]
-        $uri =  substr($this->request->getUri(), 0, 1) == '/' ? substr($this->request->getUri(), 1) : $this->request->getUri();
+        //substr($this->request->getUri(), 0, 1) == '/' ? substr($this->request->getUri(), 1) :
+        $uri  =  $this->request->getUri();
+
         $xUri = strlen($this->prefixo) ? explode($this->prefixo, $uri) : [$uri];
-        return end($xUri);
+
+        //adicionar para remover o grupo
+        $ex = explode('/', $uri);
+        unset($ex[0]);
+
+        $grupo = $ex[1] ?? '/';
+
+
+        if (isset(self::$routes[$grupo])) {
+            $xUri = strlen($grupo) ? explode($grupo, $uri) : [$uri];
+        } else {
+            $grupo = '/';
+        }
+
+        $pos = strpos(end($xUri), '?');
+
+        if ($pos !== '-1') {
+
+            $ur = explode('?', end($xUri));
+            return [$grupo, trim(reset($ur)) != '' ? reset($ur) : '/'];
+        }
+
+        return  [$grupo, end($xUri) ?? '/'];
     }
 
     /**
@@ -122,25 +181,59 @@ class Router
      */
     private function getRoute()
     {
-
-        $uri = $this->getUri();
+        list($grupo, $uri) = $this->getUri();
 
         $httpMethod = $this->request->getHttpMethod();
 
-        echo 'rotas : '."<br>";
-        dd(self::$routes);
-        //valida das rotas
-        foreach (self::$routes as $patternRoute => $methods) {
+        //valida das rotas        
+        foreach (self::$routes as $group => $routes) {
 
-            if (preg_match($patternRoute, $uri)) {
-                return $methods[$httpMethod];
+            if ($grupo != $group) continue;
+
+            foreach ($routes as $patternRoute => $methods) {
+
+                if (preg_match($patternRoute, $uri, $matches)) {
+
+                    if ($methods[$httpMethod]) {
+                        //remove a primeira posição
+                        unset($matches[0]);
+
+                        /**
+                         * Tranforma a expressao regilar da url em parametros
+                         */
+                        //chaves 
+                        $keys = ($methods[$httpMethod]['controller']['params']['variables']);
+
+                        $methods[$httpMethod]['variables'] = array_combine($keys, $matches);
+                        $methods[$httpMethod]['request'] = $this->request;
+
+                        return $methods[$httpMethod];
+                    }
+
+                    throw new Exception('Método não permitido', 405);
+                }
             }
-
-            throw new Exception('Método não permitido', 405);
         }
 
         throw new Exception('URL Não encontrada', 404);
     }
+    /**
+     * Adiciona um grupo
+     * @param [type] $grupo
+     * @param [type] $call
+     * @return void
+     */
+    public function group($grupo, $call)
+    {
+        self::$group =  $grupo ?? '/';
+        if ($call instanceof Closure) {
+            $call();
+            return;
+        }
+
+        self::$group = '/';
+    }
+
 
     /**
      * Executa a rota atual     
@@ -151,18 +244,44 @@ class Router
         try {
             $route = $this->getRoute();
 
-            if(!isset($route['controller'])){
+            $args = [];
+
+            if (!isset($route['controller'])) {
                 throw new Exception('A URL não pode ser processada!', 500);
             }
 
-            $args = [];
 
-            return call_user_func_array($route['controller'], $args);
+            if (is_array($route['controller'])) {
 
+                $controller = "\\App\\Controller\\" . $route['controller']['classe'];
+                $instance = new $controller;
+                $metodo = $route['controller']['metodo'];
+                $route['controller'] = array($instance, $metodo);
+            }
 
-            return new Response(200, 'zz');
+            $args = $route['variables'];            
+            //retorna execução da funcao
+            
+            return (new MiddlewareQueue($route['middlewares'], $route['controller'] ,array_values($args)))->next($this->request);
+
+            
         } catch (Exception $e) {
             return new Response($e->getCode(), $e->getMessage());
         }
+    }
+
+    /**
+     * Redirecionar a URL     
+     * @param string $route     
+     */
+    public static function redirect($route){
+        
+        $prefixo =  ConfigEnv::getAttribute('PREFIXO');
+        $objRoute = new Router(BASE_HTTP, $prefixo); //adiciona as rotas
+        $url = $objRoute->url.'/'.$route;
+        //dd($url.$route);
+        header('location:'.$url);
+        exit;
+
     }
 }

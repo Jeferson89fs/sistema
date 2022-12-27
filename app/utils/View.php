@@ -17,15 +17,36 @@ class View
             ob_start();
             include $file;
             $html  = ob_get_clean();
+        }else{
+            echo 'view nao existe ( '.$file.' )';
         }
 
         return $html;
     }
 
 
-    public static function render($view, $vars = [])
+    /**
+     * Undocumented function
+     *
+     * @param string $view
+     * @param array $vars
+     * @param boolean $includeHeaderFooter
+     * @param string $namespace
+     * @return string
+     */
+    public static function render($view, $vars = [], $includeHeaderFooter=true, $namespace='template')
     {
-        $contentView = self::getContentView($view, $vars);
+        $contentView = '';
+
+        if($includeHeaderFooter){                    
+            $contentView .= self::getContentView($namespace.'/header', $vars);
+        }
+        
+        $contentView .= self::getContentView($view, $vars);
+
+        if($includeHeaderFooter){
+            $contentView .= self::getContentView($namespace.'/footer', $vars);
+        }
 
         return $contentView;
     }
