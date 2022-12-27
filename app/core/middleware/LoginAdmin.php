@@ -18,13 +18,12 @@ class LoginAdmin implements MiddlewareInterface
      */
     public function handle($request, $next)
     {
-        if(!LoginSession::isLogged()){
-            $prefixo =  ConfigEnv::getAttribute('PREFIXO');
-            $objRoute = new Router(BASE_HTTP, $prefixo); //adiciona as rotas
-            $objRoute->redirect('admin/login');
+     
+        if(!LoginSession::isLogged()){            
+            Router::redirect('admin/login');
             exit;
-        }
-
+        }        
+        
         return $next($request);
     }
 

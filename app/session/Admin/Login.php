@@ -25,6 +25,18 @@ class Login
 
     }
 
+    public static function logout()
+    {
+        self::init();
+
+        unset($_SESSION['admin']['usuario']);
+        
+        return true;
+
+    }
+
+    
+
     public static function isLogged(){         
         self::init();
 

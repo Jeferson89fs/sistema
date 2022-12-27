@@ -6,6 +6,7 @@ use \Closure;
 use \Exception;
 use ReflectionFiber;
 use \ReflectionFunction;
+use App\Core\ConfigEnv;
 use App\Core\Middleware\Queue as MiddlewareQueue;
 
 class Router
@@ -273,8 +274,11 @@ class Router
      * Redirecionar a URL     
      * @param string $route     
      */
-    public function redirect($route){
-        $url = $this->url.'/'.$route;
+    public static function redirect($route){
+        
+        $prefixo =  ConfigEnv::getAttribute('PREFIXO');
+        $objRoute = new Router(BASE_HTTP, $prefixo); //adiciona as rotas
+        $url = $objRoute->url.'/'.$route;
         //dd($url.$route);
         header('location:'.$url);
         exit;

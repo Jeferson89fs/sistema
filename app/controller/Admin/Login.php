@@ -17,7 +17,7 @@ class Login extends Page
 
     public function getLogin()
     {
-
+        SessionLogin::logout();
 
         return View::render('admin/login', [], true, 'admin');
     }
@@ -39,11 +39,16 @@ class Login extends Page
         }
 
         SessionLogin::login($usuario);
-        
-        $prefixo =  ConfigEnv::getAttribute('PREFIXO');
-        $objRoute = new Router(BASE_HTTP, $prefixo); //adiciona as rotas
-        $objRoute->redirect('admin');
+
+        Router::redirect('admin');
 
         //return View::render('admin/login', [], true, 'admin');
+    }
+
+    public function logout()
+    {
+        SessionLogin::logout();
+
+        Router::redirect('admin/login');
     }
 }

@@ -8,5 +8,5 @@
     <link href="<?= BASE_HTTP ?>/css/bootstrap.min.css" rel="stylesheet" />
     <script src="<?= BASE_HTTP ?>/js/bootstrap.bundle.min.js"></script>
 </head>
-
-<body class="bg-dark">
+<!-- bg-dark -->
+<body class="">
