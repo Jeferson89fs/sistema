@@ -9,7 +9,7 @@ class View
     {
         extract($vars);
         $nomeView = explode('/', $view);
-        $file =  __DIR__ . "../../Resources/View/" . implode('/', array_map('ucfirst', $nomeView)) . ".php";
+        $file = $_SERVER['DOCUMENT_ROOT']  . "app/resources/View/" . implode('/', array_map('ucfirst', $nomeView)) . ".php";
 
         $html = '';
 
