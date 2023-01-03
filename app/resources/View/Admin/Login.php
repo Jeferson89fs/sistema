@@ -1,4 +1,4 @@
-<div class="d-flex justify-content-center">
+<div class="d-flex flex-column justify-content-center align-items-center">
     <div class="card mt-3 text-dark text-center" style="width: 500px;">
         <div class="card-header">
             <h1>Login</h1>
