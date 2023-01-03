@@ -2,13 +2,32 @@
 
 namespace App\Controller\Admin;
 
-class Home
+use App\Utils\View;
+use App\Controller\Admin\AbstractController;
+
+class Home extends AbstractController
 {
     public function getIndex()
     {
 
-        //unset($_SESSION['admin']);
-        //dd($_SESSION['admin']);
-        echo 'index';
+        $alert = '';
+        // $alert .= Alert::getSuccess('teste');
+        // $alert .=Alert::getError('teste');
+        // $alert .=Alert::getInfo('teste');
+        // $alert .=Alert::getAlert('teste');
+
+
+        return View::render(
+            'Admin/Home/index',
+            [
+                'alert' => $alert,
+                'title' => 'Inicio',
+                'content' => 'content',
+                'menu'  => $this->menu
+            ],
+            true,
+            'Admin',
+
+        );
     }
 }

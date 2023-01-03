@@ -25,18 +25,20 @@ class DB
 
     private  $order = [];
 
-    private  $offSet;
+    private  $offSet = 0;
 
     private  $limit;
 
     private  $paginate;
+    
+    private  $totalResults;
 
     private $Query;
 
     private $fetch = [];
 
     public function getQuery()
-    {        
+    {
         return $this->Query;
     }
 
@@ -83,13 +85,13 @@ class DB
         $this->offSet = $offSet;
         return $this;
     }
-    
+
     public function limit($limit)
     {
         $this->limit = $limit;
         return $this;
     }
-    
+
     public function order($order, $type = 'DESC')
     {
         $this->order[] = [$order, $type];
@@ -142,6 +144,8 @@ class DB
     public function getNextVal()
     {
         $this->Query = " select nextval('" . $this->getSequence() . "') as id ";
+
+
         $Statement = $this->execute($this->Query);
         $result = $Statement->fetch(\PDO::FETCH_OBJ);
         return $result->id;
@@ -150,7 +154,10 @@ class DB
 
     public function insert(array $values)
     {
-        $values = array_merge([$this->primaryKey => ($this->getNextVal())], $values);
+
+        if (ConfigEnv::getAttribute('DB_CONNECTION') == 'pgsql') {
+            $values = array_merge([$this->primaryKey => ($this->getNextVal())], $values);
+        }
 
         $fields = array_keys($values);
         $binds  = array_pad([], count($fields), '?');
@@ -216,12 +223,20 @@ class DB
 
             $this->Query = [];
             foreach ($value as $c => $v) {
-                $this->Query[] = $boolean . ' ' . $column . ' ' . $operator . ' \'' . $v . '\'';
+                if ($operator == 'like') {
+                    $this->Query[] = $boolean . ' ' . $column . ' ' . $operator . ' \'%' . $v . '\'%';
+                } else {
+                    $this->Query[] = $boolean . ' ' . $column . ' ' . $operator . ' \'' . $v . '\'';
+                }
             }
             return implode(' ', $this->Query);
         }
 
-        return  $boolean . ' ' . $column . ' ' . $operator . ' \'' . $value . '\'';
+        if ($operator == 'like') {
+            return  $boolean . ' ' . $column . ' ' . $operator . ' \'%' . $value . '%\'';
+        } else {
+            return  $boolean . ' ' . $column . ' ' . $operator . ' \'' . $value . '\'';
+        }
     }
 
     public function compileWhere()
@@ -235,6 +250,7 @@ class DB
 
             $Arrwhere[] = $this->structWhere($where[0], $where[2], $where[1], $where[3]);
         }
+
 
         return implode(' ', $Arrwhere);
     }
@@ -281,47 +297,67 @@ class DB
         $this->Query  =  $sql;
         $this->Query .=  $where;
         $this->Query .=  $order;
-        $this->Query .=  $offSet;
         $this->Query .=  $limit;
-        $this->Query .= "\n";        
+        $this->Query .=  $offSet;
+        $this->Query .= "\n";
+
+        dd($this->Query);
+    }
+
+    public function getCountResults(){
+
+        $where = $this->compileWhere();
+        
+        $sql  = " select count(*) as total ";
+        $sql .= " from {$this->schema}.{$this->table}";
+        $sql .= " where 1=1 ";
+
+        $this->Query  =  $sql;
+        $this->Query .=  $where;
+        $this->Query .= "\n";
+
+        $Statement = $this->execute($this->Query);
+        $fetch = $Statement->fetchObject();
+        
+        return $fetch->total;
     }
 
     public function select($colmns = '*')
     {
-        $this->QueryBuilder($colmns);             
-        //dd($this->Query);
+
+        $this->QueryBuilder($colmns);
+
 
         $Statement = $this->execute($this->Query);
-        
+
         $this->fetch = $Statement->fetchAll(PDO::FETCH_CLASS, $this->model);
 
-        return $this->fetch ;
+        return $this->fetch;
     }
 
-    public function toString(){
+    public function toString()
+    {
         $result = '';
 
-        if(is_array($this->fetch)){
-            foreach($this->fetch as $obj){
-                $result .= implode(',' , $obj->atributes);
+        if (is_array($this->fetch)) {
+            foreach ($this->fetch as $obj) {
+                $result .= implode(',', $obj->atributes);
             }
-            
         }
-        
+
         return $result;
-        
     }
 
-    public function toArray(){
+    public function toArray()
+    {
         $result = [];
 
-        if(is_array($this->fetch)){
-            foreach($this->fetch as $obj){
-                array_push($result, $obj->atributes);                
-            }            
+        if (is_array($this->fetch)) {
+            foreach ($this->fetch as $obj) {
+                array_push($result, $obj->atributes);
+            }
         }
-        
+
         return $result;
-        
     }
 }

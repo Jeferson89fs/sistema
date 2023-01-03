@@ -9,3 +9,5 @@ define('BASE_ROOT', $_SERVER['DOCUMENT_ROOT']);
 
 define('DEBUG_URI', true);
 
+define('LIMIT', 30);
+
