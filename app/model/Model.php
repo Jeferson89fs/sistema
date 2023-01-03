@@ -3,6 +3,7 @@
 namespace App\Model;
 
 use App\Core\DB;
+use App\Core\Paginate;
 
 class Model
 {
@@ -101,6 +102,17 @@ class Model
     }
 
     /**
+     * limit function
+     * Método responsável por adicionar o Limite de registros ao SQL
+     * @param [string] $limit     
+     * @return this
+     */
+    public function getCountResults()
+    {
+        return $this->db->getCountResults();
+    }
+
+    /**
      * order function
      * Método responsável por adicionar a Ordem ao SQL
      * @param [type] $order
@@ -164,7 +176,9 @@ class Model
         $Model = new $class;
 
         foreach ((array)$result as $c => $v) {
-            $Model->$c = $v;
+            if (in_array($c, $Model->fillable)) {
+                $Model->$c = $v;
+            }
         }
 
         return $Model;
@@ -194,18 +208,17 @@ class Model
         $obj =  reset($this->db->select($colmns));
         $retorno = [];
 
-        
-        if ($colmns == '*') {
 
+        if ($colmns == '*') {
         } else {
             $exp = explode(',', $colmns);
 
-            foreach ($exp as $c => $v) {                
+            foreach ($exp as $c => $v) {
                 $retorno[trim($v)] =  $obj->atributes[trim($v)];
             }
         }
 
-        if(count($retorno) == 1){
+        if (count($retorno) == 1) {
             return end($retorno);
         }
 
@@ -215,7 +228,7 @@ class Model
 
 
     //monta o sql paginado
-    public function paginate(int $pagina = 1, int $limit = 30)
+    public function paginate(int $pagina = 1, int $limit = LIMIT)
     {
 
         if (isset($_GET['pg'])) {
@@ -228,11 +241,11 @@ class Model
 
         $result = $this->db->schema($this->schema)
             ->table($this->table)
-            ->offSet((($pagina - 1) * $limit))
             ->limit($limit)
+            ->offSet((($pagina - 1) * $limit))
             ->select();
 
-        return $result;
+        return new Paginate($result, $this->db->getCountResults());
     }
 
 

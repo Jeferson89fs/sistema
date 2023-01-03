@@ -19,7 +19,7 @@ class Login extends Page
     {
         SessionLogin::logout();
 
-        return View::render('admin/login', [], true, 'admin');
+        return View::render('admin/login/login', [], true, 'admin/login');
     }
 
     public function verificaLogin()
