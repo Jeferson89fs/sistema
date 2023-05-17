@@ -8,7 +8,7 @@ use App\Model\Model;
 class Usuario extends Model
 {
 
-    protected $schema = 'sistema';
+    protected $schema = 'public';
 
     protected $table = 'usuario';
 

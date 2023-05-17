@@ -301,7 +301,7 @@ class DB
         $this->Query .=  $offSet;
         $this->Query .= "\n";
 
-        dd($this->Query);
+        //dd($this->Query);
     }
 
     public function getCountResults(){

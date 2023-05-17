@@ -31,9 +31,13 @@ class Login extends Page
         $usuario = new Usuario;
         $usuario = $usuario->where('email', '=', $email)->get('id_usuario, nome, senha, email');
 
-        $hash = password_hash($senha, PASSWORD_DEFAULT);
+        $hash = password_hash(trim($senha), PASSWORD_DEFAULT);
 
-        if (!password_verify($senha, $usuario['senha'])) {
+        //echo $usuario['senha'];
+        //echo "<br>";
+        //echo $hash;
+        
+        if (!password_verify(trim($senha), trim($usuario['senha']))) {
             $_REQUEST['senha'] = '';
             return $this->getLogin();
         }
